@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+pydantic
+requests
+langchain
+langchain-community
+langchain-ollama
+langchain-text-splitters
+sentence-transformers
+faiss-cpu
+python-multipart
+numpy
+pypdf
+
