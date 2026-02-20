@@ -4,7 +4,7 @@ import json
 import re
 
 class LLMClient:
-    def __init__(self, model_name="llama3"):
+    def __init__(self, model_name="llama3.1"):
         self.llm = ChatOllama(model=model_name, temperature=0.2, format="json")
     
     def invoke_agent(self, system_prompt: str, user_message: str) -> dict:

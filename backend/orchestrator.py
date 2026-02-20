@@ -2,6 +2,7 @@ from agents import RouterAgent, RetrievalAgent, AnswerAgent
 from llm_client import LLMClient
 from rag_engine import RAGEngine
 
+
 class Orchestrator:
     def __init__(self, rag_engine: RAGEngine, llm_client: LLMClient):
         self.rag = rag_engine
@@ -23,29 +24,26 @@ class Orchestrator:
         print(f"Detected Intent: {intent}")
         
         if intent == "DIRECT_ANSWER":
-            # Just use LLM directly without RAG context
             return self.answer_gen.generate_response(query, [], risk_level, intent="DIRECT_ANSWER")
 
         # 2. Retrieval Research (Intent == "RAG_RESEARCH")
         search_queries = self.retriever.generate_queries(query)
         print(f"Generated Search Queries: {search_queries}")
         
-        # Aggregate results
+        # 3. Vector search with deduplication
         all_docs = []
         seen_content = set()
         
-        # Search for each generated query
         for q in search_queries:
-            docs = self.rag.search(q, k=2) # Get top 2 for each expansion
+            docs = self.rag.search(q, k=3)
             for d in docs:
-                # Deduplicate based on content preview (first 50 chars)
                 sig = d['content'][:50]
                 if sig not in seen_content:
+                    d["retrieval_method"] = "vector"
                     all_docs.append(d)
                     seen_content.add(sig)
-        
-        # 3. Answer Generation
-        # If no docs found after expansion, try original query once
+
+        # 4. Fallback
         if not all_docs:
              all_docs = self.rag.search(query, k=3)
         
@@ -58,7 +56,22 @@ class Orchestrator:
                 "is_safe": True
             }
 
+        # 5. Answer generation
         response = self.answer_gen.generate_response(query, all_docs, risk_level)
+        
+        # Compute confidence from retrieval scores
+        if all_docs:
+            avg_score = sum(d.get("score", 0) for d in all_docs) / len(all_docs)
+            top_score = max(d.get("score", 0) for d in all_docs)
+            # Weighted: 60% top score, 40% average
+            combined = 0.6 * top_score + 0.4 * avg_score
+            if combined >= 0.55:
+                computed_confidence = "High"
+            elif combined >= 0.35:
+                computed_confidence = "Medium"
+            else:
+                computed_confidence = "Low"
+            response["confidence_score"] = computed_confidence
         
         # Merge source docs into response for UI
         response["evidence"] = all_docs[:4] # Limit to top 4 unique

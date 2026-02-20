@@ -43,7 +43,7 @@ app = FastAPI(title="Explainable RAG Healthcare System", version="1.0.0", lifesp
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # For development, allow all. Restrict in prod.
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -103,6 +103,7 @@ async def query_endpoint(request: QueryRequest):
             risk_level=risk_level,
             disclaimer=disclaimer
         )
+    
     except Exception as e:
         print(f"Orchestrator Error: {e}")
         return QueryResponse(
@@ -114,3 +115,6 @@ async def query_endpoint(request: QueryRequest):
             risk_level="Low",
             disclaimer="System Error"
         )
+
+# Set environment variable to disable progress bars
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"

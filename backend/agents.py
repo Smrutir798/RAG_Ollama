@@ -76,7 +76,7 @@ class AnswerAgent:
         You are a safe, evidence-based healthcare assistant.
         Risk Level of Query: {risk_level}
         
-        GOAL: Answer using ONLY the provided context.
+        GOAL: Answer using ONLY the provided document context.
         
         RULES:
         1. DO NOT provide medical diagnosis or treatment.
@@ -93,5 +93,5 @@ class AnswerAgent:
         }}
         """
         
-        user_msg = f"Query: {query}\n\nContext:\n{context_str}"
+        user_msg = f"Query: {query}\n\nDocument Context:\n{context_str}"
         return self.llm.invoke_agent(system_prompt, user_msg)

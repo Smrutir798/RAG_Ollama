@@ -7,12 +7,13 @@ import pypdf
 from sentence_transformers import SentenceTransformer
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+
 class RAGEngine:
     def __init__(self, data_dir: str = "../data", model_name: str = "all-MiniLM-L6-v2"):
         self.data_dir = data_dir
         self.encoder = SentenceTransformer(model_name)
         self.index = None
-        self.documents = [] # Stores metadata/content corresponding to index
+        self.documents = []  # Stores metadata/content corresponding to index
         self.chunk_size = 500
         self.chunk_overlap = 50
         
@@ -97,7 +98,8 @@ class RAGEngine:
         # Add to FAISS
         if self.index is None:
              self.index = faiss.IndexFlatL2(embeddings.shape[1])
-             
+
+        start_idx = len(self.documents)
         self.index.add(np.array(embeddings).astype('float32'))
         self.documents.extend(metadata)
         
@@ -105,7 +107,7 @@ class RAGEngine:
         return True, f"Successfully indexed {len(chunks)} chunks."
 
     def search(self, query: str, k: int = 3) -> List[Dict]:
-        """Retrieves top-k relevant chunks."""
+        """Retrieves top-k relevant chunks with normalized relevance scores."""
         if not self.index or self.index.ntotal == 0:
             return []
 
@@ -116,13 +118,21 @@ class RAGEngine:
         for i, idx in enumerate(I[0]):
             if idx != -1 and idx < len(self.documents):
                 doc = self.documents[idx]
+                # Convert L2 distance to 0-1 similarity score
+                # L2 distance: 0 = identical, higher = less similar
+                # Using exponential decay: score = e^(-distance/scale)
+                l2_dist = float(D[0][i])
+                similarity = float(np.exp(-l2_dist / 2.0))  # scale factor 2.0
+                similarity = round(max(0.0, min(1.0, similarity)), 3)
+                
                 results.append({
                     "content": doc["content"],
                     "source": doc["source"],
-                    "score": float(D[0][i])
+                    "score": similarity,  # 0-1 where 1 = perfect match
+                    "relevance": "High" if similarity >= 0.6 else "Medium" if similarity >= 0.35 else "Low"
                 })
         
+        # Filter out very low relevance results
+        results = [r for r in results if r["score"] >= 0.15]
+        
         return results
-
-# Singleton instance placeholder
-# engine = RAGEngine()
