@@ -1,64 +1,70 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 const QueryInput = ({ onSearch, isLoading }) => {
   const [query, setQuery] = useState('');
+  const textareaRef = useRef(null);
 
-  const exampleQueries = [
-    "I have fever and headline",
-    "Chest pain when breathing",
-    "Sore throat and cough",
-    "Skin rash with itching"
-  ];
+  // Auto-resize textarea
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (ta) {
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
+    }
+  }, [query]);
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    if (query.trim()) {
+    e?.preventDefault();
+    if (query.trim() && !isLoading) {
       onSearch(query);
+      setQuery('');
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
     }
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto mt-6">
-      <form onSubmit={handleSubmit} className="relative">
-        <div className="relative group">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Describe your symptoms (e.g., fever, cough, sore throat)..."
-            disabled={isLoading}
-            className="w-full pl-6 pr-32 py-5 text-lg rounded-2xl border-2 border-slate-200 shadow-sm focus:outline-none focus:border-medical-primary focus:ring-4 focus:ring-medical-primary/10 transition-all disabled:bg-slate-50 disabled:text-slate-400 placeholder:text-slate-400"
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !query.trim()}
-            className="absolute right-2 top-2 bottom-2 px-8 bg-medical-primary hover:bg-sky-600 text-white rounded-xl font-semibold shadow-sm disabled:bg-slate-300 disabled:cursor-not-allowed transition-all transform active:scale-95 uppercase tracking-wide text-sm"
-          >
-            {isLoading ? '...' : 'Analyze'}
-          </button>
-        </div>
-      </form>
-      
-      {/* Example Chips */}
-      <div className="mt-4 flex flex-wrap gap-2 justify-center">
-        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-1 py-1.5">Try asking:</span>
-        {exampleQueries.map((q, idx) => (
-          <button
-            key={idx}
-            onClick={() => setQuery(q)}
-            disabled={isLoading}
-            className="text-sm px-3 py-1.5 bg-white border border-slate-200 rounded-full text-slate-600 hover:border-medical-primary hover:text-medical-primary transition-colors cursor-pointer shadow-sm hover:shadow"
-          >
-            {q}
-          </button>
-        ))}
+    <form onSubmit={handleSubmit} className="flex items-end gap-3">
+      <div className="flex-1 relative">
+        <textarea
+          ref={textareaRef}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask about symptoms, conditions, or health topics..."
+          disabled={isLoading}
+          rows={1}
+          className="w-full resize-none pl-4 pr-4 py-3 text-[15px] leading-relaxed rounded-xl border-none bg-transparent focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-400 text-slate-700"
+          style={{ maxHeight: '200px' }}
+        />
       </div>
-     
-      <p className="mt-6 text-center text-xs text-slate-400 max-w-xl mx-auto">
-        By using this tool, you acknowledge that AI responses can be inaccurate. 
-        <span className="block mt-1">Always consult a doctor for serious concerns.</span>
-      </p>
-    </div>
+      <button
+        type="submit"
+        disabled={isLoading || !query.trim()}
+        className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all transform active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed mb-0.5"
+        style={{
+          background: isLoading || !query.trim()
+            ? 'rgba(148, 163, 184, 0.3)'
+            : '#1e293b',
+          boxShadow: isLoading || !query.trim()
+            ? 'none'
+            : '0 2px 8px rgba(0, 0, 0, 0.15)',
+        }}
+      >
+        {isLoading ? (
+          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 14V2M8 2L3 7M8 2L13 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+      </button>
+    </form>
   );
 };
 
